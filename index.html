@@ -53,7 +53,7 @@ backdrop-filter:blur(20px);
 overflow:hidden;
 ">
 
-<!-- Soft Ambient Glow -->
+<!-- Ambient Glow -->
 <div style="
 position:absolute;
 top:-50%;
@@ -106,19 +106,13 @@ opacity:.9;
 </div>
 
 <!-- Center Image -->
-<div style="
-text-align:center;
-margin-bottom:40px;
-position:relative;
-">
-
+<div style="text-align:center;margin-bottom:40px;">
 <img src="https://www.dropbox.com/scl/fi/xmqp056vwb4y1xxxholv3/4ce4a1a79ffa8c6f6605a6abb76cad70-removebg-preview.png?rlkey=1js95gdqnvs8fw4xq1gybsxmt&st=c7cxes0m&raw=1"
 style="
 width:230px;
 filter:drop-shadow(0 0 40px rgba(236,202,250,.35));
 animation:floatImage 6s ease-in-out infinite;
 ">
-
 </div>
 
 <!-- Divider -->
@@ -140,24 +134,12 @@ NEWEST MEMBERS
 </div>
 
 <!-- Members Container -->
-<div id="members"></div>
+<div id="members" style="font-family:Arial, sans-serif;"></div>
 
 </div>
 
-<!-- Audio -->
-<audio id="bgAudio" autoplay loop>
-<source src="https://ia801707.us.archive.org/1/items/nefer-edit-hotel-room-flvckka-genshin-impact-nefer-genshin-edit-1080p/Nefer%20edit%20_%20Hotel%20Room%20-%20Flvckka%20_%20Genshin%20Impact%20%23nefer%20%23genshin%20%23edit%201080p.mp4" type="audio/mp4">
-</audio>
-
 <script>
 
-/* ---- Audio Attempt ---- */
-const audio = document.getElementById("bgAudio");
-audio.play().catch(()=>{
-  document.addEventListener("click", ()=> audio.play(), { once:true });
-});
-
-/* ---- Time Ago ---- */
 function timeAgo(timestamp){
   const seconds = Math.floor((Date.now()/1000) - timestamp);
   const intervals = [
@@ -176,7 +158,6 @@ function timeAgo(timestamp){
   return "just joined";
 }
 
-/* ---- Load Members ---- */
 async function loadMembers(){
   const container = document.getElementById("members");
   container.innerHTML = "Summoning...";
@@ -185,22 +166,20 @@ async function loadMembers(){
     const res = await fetch("https://api.chess.com/pub/club/group-bce8a9be0e57a6641711f1f5d431e995/members");
     const data = await res.json();
 
-    const members = [...data.weekly, ...data.monthly];
-    members.sort((a,b)=> b.joined - a.joined);
-    const top5 = members.slice(0,5);
+    const weekly = data.weekly || [];
+    const monthly = data.monthly || [];
 
+    const members = [...weekly, ...monthly];
+    members.sort((a,b)=> b.joined - a.joined);
+
+    const top5 = members.slice(0,5);
     container.innerHTML = "";
 
-    const profiles = await Promise.all(
-      top5.map(m => 
-        fetch("https://api.chess.com/pub/player/" + m.username)
-        .then(r => r.json())
-      )
-    );
+    for(const m of top5){
 
-    top5.forEach((m,i)=>{
+      const profileRes = await fetch("https://api.chess.com/pub/player/" + m.username);
+      const pj = await profileRes.json();
 
-      const pj = profiles[i];
       const avatar = pj.avatar || "https://images.chesscomfiles.com/uploads/v1/images_users/tiny_mce/default-pawn.png";
       const rapid = pj.chess_rapid?.last?.rating || "—";
 
@@ -215,29 +194,9 @@ async function loadMembers(){
         margin-bottom:16px;
         background:rgba(255,255,255,.06);
         backdrop-filter:blur(18px);
-        box-shadow:
-          inset 0 0 30px rgba(255,255,255,.04),
-          0 18px 40px rgba(0,0,0,.95);
-        transition:.35s ease;
-        opacity:0;
-        transform:translateY(15px);
-        cursor:pointer;
+        box-shadow:inset 0 0 30px rgba(255,255,255,.04), 0 18px 40px rgba(0,0,0,.95);
+        transition:.3s ease;
       `;
-
-      setTimeout(()=>{
-        row.style.opacity="1";
-        row.style.transform="translateY(0)";
-      }, i*120);
-
-      row.onmouseover = () => {
-        row.style.transform="translateY(-6px) scale(1.03)";
-        row.style.boxShadow="0 25px 60px rgba(0,0,0,1)";
-      };
-
-      row.onmouseout = () => {
-        row.style.transform="translateY(0) scale(1)";
-        row.style.boxShadow="inset 0 0 30px rgba(255,255,255,.04), 0 18px 40px rgba(0,0,0,.95)";
-      };
 
       row.innerHTML = `
         <a href="https://www.chess.com/member/${m.username}" 
@@ -249,11 +208,11 @@ async function loadMembers(){
                box-shadow:0 0 20px rgba(236,202,250,.4);">
 
           <div style="flex:1;">
-            <div style="font-weight:700;font-size:14px;letter-spacing:.6px;">
+            <div style="font-weight:700;font-size:14px;">
               @${m.username}
             </div>
 
-            <div style="font-size:10px;opacity:.7;letter-spacing:.6px;margin-top:4px;">
+            <div style="font-size:10px;opacity:.7;margin-top:4px;">
               Rapid ${rapid} · Joined ${timeAgo(m.joined)}
             </div>
           </div>
@@ -261,7 +220,7 @@ async function loadMembers(){
       `;
 
       container.appendChild(row);
-    });
+    }
 
   }catch(e){
     container.innerHTML = "The silence is empty tonight.";
